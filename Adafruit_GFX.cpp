@@ -31,6 +31,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
  */
 
+
 #include "Adafruit_GFX.h"
 #include "glcdfont.c"
 #ifdef __AVR__
@@ -734,6 +735,7 @@ void Adafruit_GFX::drawBitmap(int16_t x, int16_t y, const uint8_t bitmap[],
   endWrite();
 }
 
+
 /**************************************************************************/
 /*!
    @brief      Draw a PROGMEM-resident 1-bit image at the specified (x,y)
@@ -823,7 +825,7 @@ void Adafruit_GFX::drawBitmap(int16_t x, int16_t y, uint8_t *bitmap, int16_t w,
   startWrite();
   for (int16_t j = 0; j < h; j++, y++) {
     for (int16_t i = 0; i < w; i++) {
-      if (i & 7)
+      if (i >= 7)
         b <<= 1;
       else
         b = bitmap[j * byteWidth + i / 8];
@@ -849,7 +851,12 @@ void Adafruit_GFX::drawBitmap(int16_t x, int16_t y, uint8_t *bitmap, int16_t w,
 */
 /**************************************************************************/
 void Adafruit_GFX::drawXBitmap(int16_t x, int16_t y, const uint8_t bitmap[],
-                               int16_t w, int16_t h, uint16_t color) {
+                               int16_t w, int16_t h, uint16_t color, uint16_t bg) {
+
+  static const uint32_t GxEPD_BLACK     = 0x0000;
+  static const uint32_t GxEPD_WHITE     = 0xFFFF;
+  static const uint32_t GxEPD_DARKGREY  = 0x7BEF;
+  static const uint32_t GxEPD_LIGHTGREY = 0xC618;
 
   int16_t byteWidth = (w + 7) / 8; // Bitmap scanline pad = whole byte
   uint8_t b = 0;
@@ -861,15 +868,23 @@ void Adafruit_GFX::drawXBitmap(int16_t x, int16_t y, const uint8_t bitmap[],
         b >>= 1;
       else
         b = pgm_read_byte(&bitmap[j * byteWidth + i / 8]);
+        uint16_t color_ = b & 0x80 ? 0xFFFF : 0x0000;
       // Nearly identical to drawBitmap(), only the bit order
       // is reversed here (left-to-right = LSB to MSB):
-      if (b & 0x01)
+      if (b & 0x01){
         writePixel(x + i, y, color);
+      }else if (b & 0x02){
+        writePixel(x + i, y, GxEPD_DARKGREY);
+      }
+      else
+        writePixel(x + i, y, bg);
+
+
+      //writePixel(x + i, y, (b & 0x01) ? color : bg);
     }
   }
   endWrite();
 }
-
 /**************************************************************************/
 /*!
    @brief   Draw a PROGMEM-resident 8-bit image (grayscale) at the specified
@@ -1786,6 +1801,12 @@ GFXcanvas1::~GFXcanvas1(void) {
 */
 /**************************************************************************/
 void GFXcanvas1::drawPixel(int16_t x, int16_t y, uint16_t color) {
+  // color definitions for GxEPD, GxEPD2 and GxEPD_HD, values correspond to RGB565 values for TFTs
+  #define GxEPD_BLACK     0x0000
+  #define GxEPD_WHITE     0xFFFF
+  // some controllers for b/w EPDs support grey levels
+  #define GxEPD_DARKGREY  0x7BEF // 128, 128, 128
+  #define GxEPD_LIGHTGREY 0xC618 // 192, 192, 192
   if (buffer) {
     if ((x < 0) || (y < 0) || (x >= _width) || (y >= _height))
       return;
@@ -1815,10 +1836,27 @@ void GFXcanvas1::drawPixel(int16_t x, int16_t y, uint16_t color) {
     else
       *ptr &= pgm_read_byte(&GFXclrBit[x & 7]);
 #else
-    if (color)
+    // if (color){
+    //   *ptr |= 0x80 >> (x & 7);
+    // }
+    // else {
+    //   *ptr &= ~(0x80 >> (x & 7));
+    // }
+
+    if (color==GxEPD_WHITE){
       *ptr |= 0x80 >> (x & 7);
-    else
+    }
+    else if (color == GxEPD_BLACK){
       *ptr &= ~(0x80 >> (x & 7));
+    }
+    else {
+      if (x%2==0 && y%2==0)
+        *ptr |= 0x80 >> (x & 7);
+      else if (x%2==1 && y%2==1)
+        *ptr &= ~(0x80 >> (x & 7));
+      else
+        *ptr &= ~(0x80 >> (x & 7));
+    }
 #endif
   }
 }
@@ -2139,30 +2177,30 @@ GFXcanvas8::~GFXcanvas8(void) {
 */
 /**************************************************************************/
 void GFXcanvas8::drawPixel(int16_t x, int16_t y, uint16_t color) {
-  if (buffer) {
-    if ((x < 0) || (y < 0) || (x >= _width) || (y >= _height))
-      return;
+  // if (buffer) {
+  //   if ((x < 0) || (y < 0) || (x >= _width) || (y >= _height))
+  //     return;
 
-    int16_t t;
-    switch (rotation) {
-    case 1:
-      t = x;
-      x = WIDTH - 1 - y;
-      y = t;
-      break;
-    case 2:
-      x = WIDTH - 1 - x;
-      y = HEIGHT - 1 - y;
-      break;
-    case 3:
-      t = x;
-      x = y;
-      y = HEIGHT - 1 - t;
-      break;
-    }
+  //   int16_t t;
+  //   switch (rotation) {
+  //   case 1:
+  //     t = x;
+  //     x = WIDTH - 1 - y;
+  //     y = t;
+  //     break;
+  //   case 2:
+  //     x = WIDTH - 1 - x;
+  //     y = HEIGHT - 1 - y;
+  //     break;
+  //   case 3:
+  //     t = x;
+  //     x = y;
+  //     y = HEIGHT - 1 - t;
+  //     break;
+  //   }
 
-    buffer[x + y * WIDTH] = color;
-  }
+  //   buffer[x + y * WIDTH] = color;
+  // }
 }
 
 /**********************************************************************/
@@ -2382,10 +2420,10 @@ void GFXcanvas8::drawFastRawHLine(int16_t x, int16_t y, int16_t w,
 */
 /**************************************************************************/
 GFXcanvas16::GFXcanvas16(uint16_t w, uint16_t h) : Adafruit_GFX(w, h) {
-  uint32_t bytes = w * h * 2;
-  if ((buffer = (uint16_t *)malloc(bytes))) {
-    memset(buffer, 0, bytes);
-  }
+  // uint32_t bytes = w * h * 2;
+  // if ((buffer = (uint16_t *)malloc(bytes))) {
+  //   memset(buffer, 0, bytes);
+  // }
 }
 
 /**************************************************************************/

@@ -13,7 +13,7 @@
 #include <Adafruit_SPIDevice.h>
 
 /// A generic graphics superclass that can handle all sorts of drawing. At a
-/// minimum you can subclass and provide drawPixel(). At a maximum you can do a
+/// minimum you can subclass and provide drawPixel.ñ-(). At a maximum you can do a
 /// ton of overriding to optimize. Used for any/all Adafruit displays!
 class Adafruit_GFX : public Print {
 
@@ -90,7 +90,7 @@ public:
   void drawBitmap(int16_t x, int16_t y, uint8_t *bitmap, int16_t w, int16_t h,
                   uint16_t color, uint16_t bg);
   void drawXBitmap(int16_t x, int16_t y, const uint8_t bitmap[], int16_t w,
-                   int16_t h, uint16_t color);
+                   int16_t h, uint16_t color, uint16_t bg);
   void drawGrayscaleBitmap(int16_t x, int16_t y, const uint8_t bitmap[],
                            int16_t w, int16_t h);
   void drawGrayscaleBitmap(int16_t x, int16_t y, uint8_t *bitmap, int16_t w,
